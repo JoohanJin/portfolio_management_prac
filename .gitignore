@@ -2,4 +2,7 @@
 data/
 
 # venv folder
-port/
+portfolioManagement_env/
+
+# auto-getnerated files
+__pycache__/

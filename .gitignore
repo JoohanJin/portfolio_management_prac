@@ -3,6 +3,7 @@ data/
 
 # venv folder
 portfolioManagement_env/
+venv
 
 # auto-getnerated files
 __pycache__/

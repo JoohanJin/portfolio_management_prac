@@ -1,7 +1,42 @@
 # library import
+from typing import Union, Literal
 import pandas as pd
 import numpy as np
 import scipy.stats
+
+# assume that the data we are handling is stock data, not cryptocurrencies or other assets.
+# I can diversify the type of data in the future.
+
+def calculate_return_annualized(
+        return_series: pd.DataFrame,
+        freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
+    ):
+    """
+    Compute the annualized return from a given time series of returns.
+    """
+    # TODO: implement the functino where get the number of working days in "the" year specifically to automatically get the
+    # value of the interval, if freq is 'daily'
+    interval: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
+
+    # get the number of periods
+    n: int = return_series.shape[0]
+
+    # get the mean return
+    mean_return = (1 + return_series).prod()**(1/n)
+
+    # get the annualized return
+    annualized_return = mean_return**(interval) - 1
+    return annualized_return
+
+
+def calculate_volatility_annualized(
+        return_series: pd.Series,
+        freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
+    ):
+    interval: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
+    annaulized_volatility = return_series.std() * np.sqrt(interval)
+    return annaulized_volatility
+
 
 def drawdown(return_series: pd.Series):
     """
@@ -74,13 +109,13 @@ def skewness(r):
 
 def kurtosis(r):
     '''
-    alternative of the scipy.stats.kutosis
+    alternative of the scipy.stats.kutosis, recommended to use scipy.stats.kurtosis for more accurate calculation
     '''
     # (R - E(R))
     demeaned_r = r - r.mean()
 
     # Var(R)
-    sigma_r = r.std(ddof=0)
+    sigma_r = r.std(ddof=0) 
 
     # ExpectedValue(demeaned_r ** 4)
     exp = (demeaned_r**4).mean()

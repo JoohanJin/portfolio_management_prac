@@ -134,3 +134,33 @@ def is_normal(r, level=0.01):
         return r.aggregate(is_normal)
     statistic, p_value = scipy.stats.jarque_bera(r)
     return p_value > level
+
+from scipy.stats import norm
+def var_gaussian(r, level = 5, modified = False):
+    """
+    Returns the Parametric Gaussian VaR of a Series or DataFrame.
+    if "modified" is True, then the modified VaR is returned,
+    using the Cornish-Fisher modification.
+    """
+    # compute the Z score assuming it was Gaussian
+    z = norm.ppf(level/100)
+    if (modified):
+        s = skewness(r)
+        k = kurtosis(r)
+        z = (z +
+             (z**2 - 1)*s/6 +
+             (z**3 - 3*z)*(k-3)/24 -
+             (2*z**3 - 5*z)*(s**2)/36
+            )
+    return -(r.mean() + z*r.std(ddof=0))
+
+
+
+def get_ind_returns():
+    """
+    Load and format the Ken French 30 Industry Portfolios Value Weighted Monthly Returns
+    """
+    ind = pd.read_csv("data/ind30_m_vw_rets.csv", header=0, index_col=0, parse_dates=True)/100
+    ind.index = pd.to_datetime(ind.index, format="%Y%m").to_period('M')
+    ind.columns = ind.columns.str.strip()
+    return ind

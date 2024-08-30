@@ -62,8 +62,12 @@ def get_ffme_returns():
     """
     Load the Fama-French Dataset for the returns of the Top and Bottom Deciles by MarketCap
     """
-    me_m = pd.read_csv("data/Portfolios_Formed_on_ME_monthly_EW.csv",
-                      header=0, index_col=0, na_values=-99.99)
+    me_m = pd.read_csv(
+        "data/Portfolios_Formed_on_ME_monthly_EW.csv",
+        header = 0,
+        index_col = 0,
+        na_values = -99.99,
+    )
     rets = me_m[["Lo 10", "Hi 10"]]
     rets.columns = [
         "SmallCap",
@@ -81,8 +85,12 @@ def get_hfi_returns():
     """
     Load and format the EDHEC Hedge Fund Index Returns
     """
-    hfi = pd.read_csv("data/edhec-hedgefundindices.csv",
-                     header=0, index_col=0, parse_dates=True)
+    hfi = pd.read_csv(
+        "data/edhec-hedgefundindices.csv",
+        header = 0,
+        index_col = 0,
+        parse_dates = True
+    )
     hfi = hfi / 100
     hfi.index = hfi.index.to_period('M')
     return hfi
@@ -135,8 +143,47 @@ def is_normal(r, level=0.01):
     statistic, p_value = scipy.stats.jarque_bera(r)
     return p_value > level
 
+
+def semideviation(
+    r
+):
+    """
+    Returns the semi-deviation aka negative semi-deviatino of r
+    r must be a Series of a DataFrame, else raises a TypeError.
+    """
+    is_negative = r < 0
+    return r[is_negative].std(ddof = 0)
+
+
+def var_historic(r, level = 5):
+    """
+    Returns the history Value at Risk at a specified level.
+    i.e. returns the number such that 'level' percent of the returns fall below that number, and the (100 - level ) percent are above.
+    """
+    if isinstance(r, pd.DataFrame):
+        return r.aggregate(var_historic, axis = 0, level = level)
+    elif isinstance(r, pd.Series):
+        return -np.percentile(r, level) 
+    else:
+        raise TypeError("Expected r to be a Series or DataFrame.")
+
+    
+def cvar_historic(r, level = 5):
+    if isinstance(r, pd.DataFrame):
+        return r.aggregate(cvar_historic, axis = 0, level = level)
+    elif isinstance(r, pd.Series):
+        return -r[r <= - var_historic(r, level = level)].mean()
+    else:
+        raise TypeError("r should be either the Series or the DataFrame.")
+
+
 from scipy.stats import norm
-def var_gaussian(r, level = 5, modified = False):
+
+def var_gaussian(
+        r,
+        level = 5,
+        modified = False, # modified parameter to decide to modify the z value to cornish_fisher or not.
+    ):
     """
     Returns the Parametric Gaussian VaR of a Series or DataFrame.
     if "modified" is True, then the modified VaR is returned,
@@ -147,13 +194,13 @@ def var_gaussian(r, level = 5, modified = False):
     if (modified):
         s = skewness(r)
         k = kurtosis(r)
+        # calculate the cornish_fisher adjusted z-score based on the equation.
         z = (z +
              (z**2 - 1)*s/6 +
              (z**3 - 3*z)*(k-3)/24 -
              (2*z**3 - 5*z)*(s**2)/36
             )
     return -(r.mean() + z*r.std(ddof=0))
-
 
 
 def get_ind_returns():

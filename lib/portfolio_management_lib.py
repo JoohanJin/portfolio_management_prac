@@ -229,11 +229,15 @@ def annualize_vol(r, periods_per_year):
     We should infer the period per year
     """
     return r.std() * (periods_per_year ** 0.5)
-    
+
 
 def sharpe_ratio(r, riskfree_rate, periods_per_year):
     """
     Computes the annualized sharpe ratio of a set of returns.
+
+    A measure used in finanace to evaluate the performance of an investment by comparing its retrun to its risk.
+
+    sharpe_ratio = ((return of the portfolio) - (risk-free rate))/(standard deviation of the portfolio's excess return)
     """
     # convert the annual riskfree rate to per period
     rf_per_period = (1 + riskfree_rate) ** (1/periods_per_year) - 1

@@ -5,6 +5,7 @@ data/
 portfolioManagement_env/
 venv/
 port_env/
+env/
 
 # auto-getnerated files
 __pycache__/

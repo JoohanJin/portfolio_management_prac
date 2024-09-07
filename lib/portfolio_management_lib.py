@@ -46,16 +46,21 @@ def drawdown(return_series: pd.Series):
     returns a DataFrame with columns for the wealth index,
     the previous peaks and the percentae drawdown
     """
-    wealth_index = 1000 * (1 + return_series).cumprod() # cumultavie product
-    previous_peaks = wealth_index.cummax() # cummulative max
-    drawdowns  = (wealth_index - previous_peaks) / previous_peaks # get the negative return, loss, subject to the previous peak
-    return pd.DataFrame(
-        {
-            "Wealth": wealth_index,
-            "Peaks": previous_peaks,
-            "Drawdown": drawdowns
-        }
-    )
+    if isinstance(return_series, pd.Series):
+        wealth_index = 1000 * (1 + return_series).cumprod() # cumultavie product
+        previous_peaks = wealth_index.cummax() # cummulative max
+        drawdowns  = (wealth_index - previous_peaks) / previous_peaks # get the negative return, loss, subject to the previous peak
+        return pd.DataFrame(
+            {
+                "Wealth": wealth_index,
+                "Peaks": previous_peaks,
+                "Drawdown": drawdowns
+            }
+        )
+    elif isinstance(return_series, pd.DataFrame):
+        return_series.aggregate(drawdown, index = 0)
+    else:
+        raise TypeError
     
 
 def get_ffme_returns():

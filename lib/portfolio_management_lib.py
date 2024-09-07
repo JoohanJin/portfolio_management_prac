@@ -199,7 +199,7 @@ def var_gaussian(
     if (modified):
         s = skewness(r)
         k = kurtosis(r)
-        # calculate the cornish_fisher adjusted z-score based on the equation: new z score based on the Cornish-Fisher analysis.
+        # calculate the cornish_fisher adjusted z-score based on the equation: new z score based on the Cornish-Fisher analysis. 
         z = (z +
              (z**2 - 1)*s/6 +
              (z**3 - 3*z)*(k-3)/24 -
@@ -219,7 +219,7 @@ def get_ind_returns():
 
 
 def annualize_rets(
-        r,
+        r: pd.DataFrame | pd.Series,
         freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
 
     ):
@@ -234,7 +234,7 @@ def annualize_rets(
 
 
 def annualize_vol(
-        r,
+        r: pd.DataFrame | pd.Series,
         freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
     ):
     """
@@ -246,8 +246,8 @@ def annualize_vol(
 
 
 def sharpe_ratio(
-        r,
-        riskfree_rate,
+        r: pd.DataFrame | pd.Series,
+        riskfree_rate: float = 0.05,
         freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
     ):
     """
@@ -264,3 +264,20 @@ def sharpe_ratio(
     ann_ex_ret = annualize_rets(excess_ret, periods_per_year)
     ann_vol = annualize_vol(r, periods_per_year)
     return ann_ex_ret/ann_vol
+
+
+def portfolio_returns(weights, returns):
+    """
+    Compute the return on a portfolio from consituent returns and weights.
+    Weights are a numpy array or N x 1 Matrix and returns are numpy array or Nx1 Matrix.
+    """
+    return weights.T @ returns
+    
+
+def portfolio_vol(weights, covmat):
+    """
+    Will return s.d. not a volatility
+    Computes the vol of a portfolio from a covariance matrix and constitutent weight.
+    Weights are a numpy array or N x 1 matrix and covmat is an N x N matrix
+    """
+    return (weights.T @ covmat @ weights) ** 0.5

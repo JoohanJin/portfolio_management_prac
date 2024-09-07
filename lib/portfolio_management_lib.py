@@ -199,13 +199,13 @@ def var_gaussian(
     if (modified):
         s = skewness(r)
         k = kurtosis(r)
-        # calculate the cornish_fisher adjusted z-score based on the equation.
+        # calculate the cornish_fisher adjusted z-score based on the equation: new z score based on the Cornish-Fisher analysis.
         z = (z +
              (z**2 - 1)*s/6 +
              (z**3 - 3*z)*(k-3)/24 -
              (2*z**3 - 5*z)*(s**2)/36
             )
-    return -(r.mean() + z*r.std(ddof=0))
+    return -(r.mean() + z * r.std(ddof=0))
 
 
 def get_ind_returns():
@@ -218,25 +218,38 @@ def get_ind_returns():
     return ind
 
 
-def annualize_rets(r, periods_per_year):
+def annualize_rets(
+        r,
+        freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
+
+    ):
     """
     Annualizes a set of returns
     We should infer the period per year
     """
     compounded_growth = (1 + r).prod() # prod(): return the product of the values over the requested axis.
     n_periods = r.shape[0]
+    periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
     return compounded_growth ** (periods_per_year/n_periods) - 1
 
 
-def annualize_vol(r, periods_per_year):
+def annualize_vol(
+        r,
+        freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
+    ):
     """
     Annualizes the volatility of a set of returns
     We should infer the period per year
     """
+    periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
     return r.std() * (periods_per_year ** 0.5)
 
 
-def sharpe_ratio(r, riskfree_rate, periods_per_year):
+def sharpe_ratio(
+        r,
+        riskfree_rate,
+        freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
+    ):
     """
     Computes the annualized sharpe ratio of a set of returns.
 
@@ -245,6 +258,7 @@ def sharpe_ratio(r, riskfree_rate, periods_per_year):
     sharpe_ratio = ((return of the portfolio) - (risk-free rate))/(standard deviation of the portfolio's excess return)
     """
     # convert the annual riskfree rate to per period
+    periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
     rf_per_period = (1 + riskfree_rate) ** (1/periods_per_year) - 1
     excess_ret = r - rf_per_period
     ann_ex_ret = annualize_rets(excess_ret, periods_per_year)

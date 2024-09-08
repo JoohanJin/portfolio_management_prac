@@ -5,7 +5,7 @@ import numpy as np
 import scipy.stats
 
 
-# assume that the data we are handling is stock data, not cryptocurrencies or other assets.
+# assume that the data we are handling is stock data for now, not cryptocurrencies or other assets.
 # I can diversify the type of data in the future.
 
 def calculate_return_annualized(
@@ -26,8 +26,8 @@ def calculate_return_annualized(
     mean_return = (1 + return_series).prod()**(1/n)
 
     # get the annualized return
-    annualized_return = mean_return**(interval) - 1
-    return annualized_return
+    expected_return = mean_return**(interval) - 1
+    return expected_return
 
 
 def calculate_volatility_annualized(
@@ -63,6 +63,27 @@ def drawdown(return_series: pd.Series):
         raise TypeError
     
 
+def get_data(
+    csv_name: str
+):
+    """
+    Load the Dataset based on the csv file name
+    """
+    data = pd.read_csv(
+        csv_name,
+        header = 0,
+        index_col = 0,
+        na_values = -99.99,
+    )
+    rets = data/100
+    rets.index = pd.to_datetime(
+        rets.index,
+        format = "%Y%m"
+    ).to_period("M")
+
+    return rets
+
+
 def get_ffme_returns():
     """
     Load the Fama-French Dataset for the returns of the Top and Bottom Deciles by MarketCap
@@ -83,6 +104,7 @@ def get_ffme_returns():
         rets.index,
         format="%Y%m" # format of the given datetime, in this case, year and month, e.g. 192507 -> July of 1925
     ).to_period('M') # get the monthly return in the form of ratio.
+
     return rets
 
 
@@ -266,7 +288,7 @@ def sharpe_ratio(
     return ann_ex_ret/ann_vol
 
 
-def portfolio_returns(weights, returns):
+def portfolio_ret(weights, returns):
     """
     Compute the return on a portfolio from consituent returns and weights.
     Weights are a numpy array or N x 1 Matrix and returns are numpy array or Nx1 Matrix.
@@ -284,18 +306,91 @@ def portfolio_vol(weights, covmat):
 
 
 def plot_ef2(
-        er,
+        expected_return,
         cov,
         n_points = 20
     ):
     """
     Plots the 2-asset efficient frontier.
     """
-    if er.shape[0] != 2:
+    if expected_return.shape[0] != 2:
         raise ValueError
     weights = [np.array([w, 1 - w]) for w in np.linspace(0, 1, n_points)]
-    rets = [portfolio_returns(w, er) for w in weights]
+    rets = [portfolio_ret(w, expected_return) for w in weights]
     vols = [portfolio_vol(w, cov) for w in weights]
 
     ef = pd.DataFrame({"R": rets, "V": vols})
+    return ef.plot.line(x = "V", y = "R", style = ".-")
+
+
+from scipy.optimize import minimize
+
+def minimize_vol(
+    target_return,
+    expected_return, 
+    cov
+    ):
+    """
+    Returns the optimal weights that achieve the target return
+    given a set of expected returns and a covariance matrix.
+    """
+    n: int = expected_return.shape[0] # get the number of assets for the portfolio
+    init_guess = np.repeat(1/n, n) # each asset has the same weights in the portfolio construction
+    bounds = ((0.0, 1.0),) * n # an N-tuple of 2-tuples
+
+    # construct the constraints
+    weights_sum_to_1 = {
+        'type': 'eq',
+        'fun': lambda weights: np.sum(weights) - 1
+    }
+
+    return_is_target = {
+        'type': 'eq',
+        'args': (expected_return,),
+        'fun': lambda weights, expected_return: target_return - portfolio_ret(weights, expected_return)
+    }
+
+    # Now we minimze the volatility for the given level of returns.
+    weights = minimize(
+        portfolio_vol,
+        init_guess,
+        args = (cov,),
+        method = 'SLSQP', # Minimize a scalar function of one or more varaibles using Sequential Least Squares Programming (SLSQP).
+        options = {'disp': False},
+        constraints = (weights_sum_to_1, return_is_target),
+        bounds = bounds
+    )
+
+    return weights.x
+
+
+def optimal_weights(
+    expected_return,
+    cov,
+    n_points = 20,
+):
+    """
+    Get the weight of each assets for the best possible cases, either the lowest volatility or the highest return
+    from the given data.
+    """
+    target_returns = np.linspace(expected_return.min(), expected_return.max(), n_points)
+    weights = [minimize_vol(target_return, expected_return, cov) for target_return in target_returns]
+    return weights
+
+
+def plot_ef(
+    expected_return,
+    cov,
+    n_points = 20,
+):
+    """
+    Plots the ulti-asset efficient frontier
+    """
+    weights = optimal_weights(expected_return, cov, n_points = n_points) # not yet implemented
+    rets = [portfolio_ret(w, expected_return) for w in weights]
+    vols = [portfolio_vol(w, cov) for w in weights]
+    ef = pd.DataFrame({
+        "R": rets,
+        "V": vols,
+    })
     return ef.plot.line(x = "V", y = "R", style = ".-")

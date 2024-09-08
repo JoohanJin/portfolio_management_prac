@@ -281,3 +281,21 @@ def portfolio_vol(weights, covmat):
     Weights are a numpy array or N x 1 matrix and covmat is an N x N matrix
     """
     return (weights.T @ covmat @ weights) ** 0.5
+
+
+def plot_ef2(
+        er,
+        cov,
+        n_points = 20
+    ):
+    """
+    Plots the 2-asset efficient frontier.
+    """
+    if er.shape[0] != 2:
+        raise ValueError
+    weights = [np.array([w, 1 - w]) for w in np.linspace(0, 1, n_points)]
+    rets = [portfolio_returns(w, er) for w in weights]
+    vols = [portfolio_vol(w, cov) for w in weights]
+
+    ef = pd.DataFrame({"R": rets, "V": vols})
+    return ef.plot.line(x = "V", y = "R", style = ".-")

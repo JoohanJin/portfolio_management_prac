@@ -243,7 +243,6 @@ def get_ind_returns():
 def annualize_rets(
         r: pd.DataFrame | pd.Series,
         freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
-
     ):
     """
     Annualizes a set of returns

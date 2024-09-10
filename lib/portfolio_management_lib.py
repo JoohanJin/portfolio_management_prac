@@ -382,6 +382,8 @@ def plot_ef(
     expected_return,
     cov,
     n_points = 20,
+    show_cml = True,
+    riskfree_rate = 0.1,
 ):
     """
     Plots the ulti-asset efficient frontier
@@ -393,4 +395,80 @@ def plot_ef(
         "R": rets,
         "V": vols,
     })
-    return ef.plot.line(x = "V", y = "R", style = ".-")
+
+    ax = ef.plot.line(x = "V", y = "R", style = "-")
+
+    if show_cml:
+        ax.set_xlim(left = 0)
+
+        # get MSR
+        weight_msr = msr(
+            expected_return,
+            cov,
+            riskfree_rate = riskfree_rate
+        )
+        ret_msr = portfolio_ret(
+            weights = weight_msr,
+            returns = expected_return,
+        )
+        vol_msr = portfolio_vol(
+            weights = weight_msr,
+            covmat = cov,
+        )
+
+        # add CMl
+        cml_x = [0, vol_msr]
+        cml_y = [riskfree_rate, ret_msr]
+        ax.plot(
+            cml_x, 
+            cml_y, 
+            color='green', 
+            marker='o', 
+            linestyle='dashed', 
+            linewidth=2, 
+            markersize=12
+        )
+    return ax
+
+
+def msr(
+    expected_return,
+    cov,
+    riskfree_rate = 0.01,
+):
+    """
+    Returns the weights of the portfolio that gives you the maximum sharpe ratio
+    given the riskfree rate and expected returns and a covariane matrix.
+    """
+    n = expected_return.shape[0]
+    init_guess = np.repeat(1 / n, n)
+    bounds = ((0.0, 1.0),) * n # n-tuple of 2d array
+    weights_sum_to_1 = {
+        'type': 'eq',
+        'fun': lambda weights: np.sum(weights) - 1
+    }
+
+    def neg_sharpe(
+        weights,
+        riskfree_rate,
+        expected_return,
+        cov
+    ):
+        """
+        Returns the negative of the Sharpe ratio
+        of the given portfolio
+        """
+        r = portfolio_ret(weights, expected_return)
+        vol = portfolio_vol(weights, cov)
+        return - (r - riskfree_rate) / vol # return sharpe raio
+
+    weights = minimize(
+        neg_sharpe,
+        init_guess,
+        args = (riskfree_rate, expected_return, cov),
+        method = "SLSQP",
+        options = {"disp": False},
+        constraints = (weights_sum_to_1),
+        bounds = bounds,
+    )
+    return weights.x

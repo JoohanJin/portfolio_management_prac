@@ -383,6 +383,8 @@ def plot_ef(
     cov,
     n_points = 20,
     show_cml = True,
+    show_ew = True,
+    show_gmv = True,
     riskfree_rate = 0.1,
 ):
     """
@@ -428,6 +430,37 @@ def plot_ef(
             linewidth=2, 
             markersize=12
         )
+
+    # show equally weighted portfolio to prevent the estimation error
+    if show_ew:
+        n = expected_return.shape[0]
+        w_ew = np.repeat(1/n, n)
+        r_ew = portfolio_ret(w_ew, expected_return)
+        vol_ew = portfolio_vol(w_ew, cov)
+
+        # add EW
+        ax.plot(
+            [vol_ew], 
+            [r_ew], 
+            color = "goldenrod", 
+            marker = 'o', 
+            markersize = 10
+        )
+
+    if show_gmv:
+        weight_gmv = gmv(cov)
+        ret_gmv = portfolio_ret(weight_gmv, expected_return)
+        vol_gmv = portfolio_vol(weight_gmv, cov)
+
+        # add GMV
+        ax.plot(
+            [vol_gmv],
+            [ret_gmv],
+            color = "midnightblue",
+            marker = 'o',
+            markersize = 10,
+        )
+
     return ax
 
 
@@ -472,3 +505,12 @@ def msr(
         bounds = bounds,
     )
     return weights.x
+
+
+def gmv(cov):
+    """
+    Returns the weights of the Global Minimum Volatility portfolio
+    given a covariance matrix.
+    """
+    n = cov.shape[0]
+    return msr(np.repeat(1, n), cov, 0)

@@ -241,29 +241,41 @@ def get_ind_returns():
 
 
 def annualize_rets(
-        r: pd.DataFrame | pd.Series,
+        r: pd.DataFrame | pd.Series | float,
         freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
     ):
     """
     Annualizes a set of returns
     We should infer the period per year
     """
-    compounded_growth = (1 + r).prod() # prod(): return the product of the values over the requested axis.
-    n_periods = r.shape[0]
-    periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
-    return compounded_growth ** (periods_per_year/n_periods) - 1
-
+    if isinstance(r, pd.DataFrame) or isinstance(r, pd.Series):
+        compounded_growth = (1 + r).prod() # prod(): return the product of the values over the requested axis.
+        n_periods = r.shape[0]
+        periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
+        return compounded_growth ** (periods_per_year/n_periods) - 1
+    elif isinstance(r, float):
+        growth = 1 + r
+        periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
+        return growth ** (periods_per_year) - 1
+    else:
+        raise TypeError
 
 def annualize_vol(
-        r: pd.DataFrame | pd.Series,
+        r: pd.DataFrame | pd.Series | float,
         freq: Union[Literal['Daily', 'Monthly', 'Quarterly', 'Annual']]= 'Monthly',
     ):
     """
     Annualizes the volatility of a set of returns
     We should infer the period per year
     """
-    periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
-    return r.std() * (periods_per_year ** 0.5)
+    if isinstance(r, pd.DataFrame) or isinstance(r, pd.Series):
+        periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
+        return r.std() * (periods_per_year ** 0.5)
+    elif isinstance(r, float) or isinstance(r, int):
+        periods_per_year: int = 255 if freq == 'Daily' else 12 if freq == 'Monthly' else 4 if freq == 'Quarterly' else 1 # last one is Annual
+        return r * (periods_per_year ** 0.5)
+    else:
+        raise TypeError
 
 
 def sharpe_ratio(

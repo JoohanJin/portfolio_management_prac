@@ -9,3 +9,5 @@ env/
 
 # auto-getnerated files
 __pycache__/
+
+*test*

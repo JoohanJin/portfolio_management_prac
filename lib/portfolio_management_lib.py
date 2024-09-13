@@ -540,6 +540,7 @@ def get_ind_nfirms():
 def get_ind_size():
     """
     Load and format the Ken French 30 Industry Portfolio Average Size (market capitalization)
+    The average market capitalization of companies within each industry.
     """
     ind = pd.read_csv("data/ind30_m_size.csv", header = 0, index_col = 0)
     ind.index = pd.to_datetime(ind.index, format = "%Y%m").to_period("M")
@@ -553,15 +554,21 @@ def get_total_market_index_returns():
     """
     # get number of firms for each industry in the timeseries
     ind_nfirms = get_ind_nfirms()
-    # get the market size of each industry
+
+    # get the average market capitalization of each company in each industry
     ind_size = get_ind_size()
+
     # get the monthly return in each industry stock
     ind_return = get_ind_returns()
-    # get the market capitalization of each industry
+
+    # get the entire market value of each industry
     ind_mktcap = ind_nfirms * ind_size
-    # get the total market capitalization in timeseries
+
+    # get the total market capitalization in timeseries comprehensively. (Total Market)
     total_mktcap = ind_mktcap.sum(axis = 1)
-    # get the weight of each industry in terms of the toal market cap
+
+    # get the weight of each industry in terms of the total market value
+    # get the proportion of the each industry in terms of total market value
     ind_capweight = ind_mktcap.divide(total_mktcap, axis = 0)
     total_market_return = (ind_capweight * ind_return).sum(axis = 1)
     return total_market_return
@@ -571,7 +578,9 @@ def compound(r) -> float | pd.Series:
     """
     returns the result of compunding the set of returns in r
     """
-    return np. expm1(np.log1p(r).sum())
+    # this is same as the following but with the much less computing power and time:
+    # return (np + 1).prod() - 1
+    return np.expm1(np.log1p(r).sum())
 
 
 def run_cppi(
@@ -616,7 +625,7 @@ def run_cppi(
             floor_value = peak * (1 - drawdown)
         cushion = (account_value - floor_value) / account_value
         risky_w = m * cushion
-        risky_w = np.minimum(risky_w, 1)
+        risky_w = np.minimum(risky_w, 1) 
         risky_w = np.maximum(risky_w, 0)
         safe_w = 1 - risky_w
         risky_alloc = account_value * risky_w
@@ -682,3 +691,34 @@ def summary_stats(r, riskfree_rate = 0.03) -> pd.DataFrame:
         "Sharpe Ratio": ann_sr,
         "Max Drawdown": dd,
     })
+
+
+def gbm(
+    n_years = 10,
+    n_scenarios=1000,
+    mu=0.07,
+    sigma=0.15,
+    steps_per_year=12,
+    s_0=100.0
+) -> np.array:
+    """
+    Evolution of Geometric Brownian Motion trajectories, such as for Stock Prices
+    :param n_years:  The number of years to generate data for
+    :param n_paths: The number of scenarios/trajectories
+    :param mu: Annualized Drift, e.g. Market Return
+    :param sigma: Annualized Volatility
+    :param steps_per_year: granularity of the simulation
+    :param s_0: initial value
+    :return: a numpy array of n_paths columns and n_years*steps_per_year rows
+    """
+    # Derive per-step Model Parameters from User Specifications
+    dt = 1 / steps_per_year
+    n_steps = int(n_years * steps_per_year) + 1
+    rets_plus_1 = np.random.normal(
+        loc=((1 + mu) ** dt), # center of the distribution
+        scale=(sigma * np.sqrt(dt)), # standard deviation of the distribution
+        size=(n_steps, n_scenarios) # output shape
+        )
+    rets_plus_1[0] = 1
+    prices = s_0*pd.DataFrame(rets_plus_1).cumprod()
+    return prices

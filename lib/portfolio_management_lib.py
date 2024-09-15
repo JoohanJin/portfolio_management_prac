@@ -633,9 +633,9 @@ def run_cppi(
         # recompute the new account value at the end of this step.
         account_value = risky_alloc * (1 + risky_r.iloc[step]) + safe_alloc * (1 + safe_r.iloc[step])
         # save the histories for analysis and plotting
+        account_history.iloc[step] = account_value
         cushion_history.iloc[step] = cushion
         risky_w_history.iloc[step] = risky_w
-        account_history.iloc[step] = account_value
         floorval_history.iloc[step] = floor_value
         peak_history.iloc[step] = peak
 
@@ -699,8 +699,9 @@ def gbm(
     mu = 0.07,
     sigma = 0.15,
     steps_per_year = 12,
-    s_0 = 100.0
-) -> np.array:
+    s_0 = 100.0,
+    prices = True,
+) -> pd.DataFrame:
     """
     Compute the Geometric Brownian Motion trajectories, such as Stock Prices
     
@@ -716,6 +717,9 @@ def gbm(
         granularity of the simulation
     :param s_0: float
         The intial value
+    :param prices: bool
+        if True, return the asset value based on the return
+        if False, return the simulated return ratio not actual price.
 
     :return: pd.DataFrame
         a numpy array of (n_paths) columns and (n_years * steps_per_year) rows -> return as DataFrame.
@@ -726,13 +730,14 @@ def gbm(
     n_steps = int(n_years * steps_per_year) + 1 # the number of steps
     
     rets_plus_1 = np.random.normal(
-        loc=((1 + mu) ** dt),  # or (mu * dt) + 1 # center of the distribution
-        scale=(sigma * np.sqrt(dt)), # standard deviation of the distribution
-        size=(n_steps, n_scenarios) # output shape
+        loc = ((1 + mu) ** dt), # center of the distribution
+        # loc = (mu * dt) + 1, # Linear Estimation of expected return
+        scale = (sigma * np.sqrt(dt)), # standard deviation of the distribution
+        size = (n_steps, n_scenarios) # output shape
         )
 
-    rets_plus_1[0] = 1 # initial vlaue -> equal to the original value.
+    rets_plus_1[0] = 1 # initial value -> equal to the original value.
 
-    prices = s_0 * (pd.DataFrame(rets_plus_1).cumprod()) # cumulative asset value of the holder
+    ret_val = s_0 * (pd.DataFrame(rets_plus_1).cumprod()) if prices else pd.DataFrame(rets_plus_1 - 1) # cumulative asset value of the holder
 
-    return prices
+    return ret_val

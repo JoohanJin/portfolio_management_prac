@@ -695,30 +695,44 @@ def summary_stats(r, riskfree_rate = 0.03) -> pd.DataFrame:
 
 def gbm(
     n_years = 10,
-    n_scenarios=1000,
-    mu=0.07,
-    sigma=0.15,
-    steps_per_year=12,
-    s_0=100.0
+    n_scenarios = 1000,
+    mu = 0.07,
+    sigma = 0.15,
+    steps_per_year = 12,
+    s_0 = 100.0
 ) -> np.array:
     """
-    Evolution of Geometric Brownian Motion trajectories, such as for Stock Prices
-    :param n_years:  The number of years to generate data for
-    :param n_paths: The number of scenarios/trajectories
-    :param mu: Annualized Drift, e.g. Market Return
-    :param sigma: Annualized Volatility
-    :param steps_per_year: granularity of the simulation
-    :param s_0: initial value
-    :return: a numpy array of n_paths columns and n_years*steps_per_year rows
+    Compute the Geometric Brownian Motion trajectories, such as Stock Prices
+    
+    :param n_years: int
+        The number of years to generate data for 
+    :param n_scenarios: int
+        The number of scenarios/trajectories
+    :param mu: float
+        Annualized Drift, e.g., Market Return
+    :param sigma: float
+        Annualized Volatility
+    :param steps_per_year: int
+        granularity of the simulation
+    :param s_0: float
+        The intial value
+
+    :return: pd.DataFrame
+        a numpy array of (n_paths) columns and (n_years * steps_per_year) rows -> return as DataFrame.
     """
     # Derive per-step Model Parameters from User Specifications
-    dt = 1 / steps_per_year
-    n_steps = int(n_years * steps_per_year) + 1
+    dt = 1 / steps_per_year # what is the period between each period
+
+    n_steps = int(n_years * steps_per_year) + 1 # the number of steps
+    
     rets_plus_1 = np.random.normal(
-        loc=((1 + mu) ** dt), # center of the distribution
+        loc=((1 + mu) ** dt),  # or (mu * dt) + 1 # center of the distribution
         scale=(sigma * np.sqrt(dt)), # standard deviation of the distribution
         size=(n_steps, n_scenarios) # output shape
         )
-    rets_plus_1[0] = 1
-    prices = s_0*pd.DataFrame(rets_plus_1).cumprod()
+
+    rets_plus_1[0] = 1 # initial vlaue -> equal to the original value.
+
+    prices = s_0 * (pd.DataFrame(rets_plus_1).cumprod()) # cumulative asset value of the holder
+
     return prices

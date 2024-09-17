@@ -520,7 +520,7 @@ def msr(
 
 def gmv(cov):
     """
-    Returns the weights of the Global Minimum Volatility portfolio
+    Returns the weights of the Global Minimum Volatility portfolio  
     given a covariance matrix.
     """
     n = cov.shape[0]
@@ -741,3 +741,40 @@ def gbm(
     ret_val = s_0 * (pd.DataFrame(rets_plus_1).cumprod()) if prices else pd.DataFrame(rets_plus_1 - 1) # cumulative asset value of the holder
 
     return ret_val
+
+
+def discount(
+    t: float,
+    r: float,
+    ):
+    """
+    Compute the price of a pure discount bond that pays $1 at time t where t is in years and r is the annual interest rate.
+
+    Current price of bond which gives $1 after time t.
+
+    return discount rate.
+    """
+    return (1 + r) ** (-t)
+
+
+def pv(
+    l: list,
+    r: list
+):
+    """
+    Compute the present value of a list of liabilities given by the time, as an index, and amounts
+    """
+    dates = l.index
+    discounts = discount(dates, r)
+    return (discounts * l).sum()
+
+
+def funding_ratio(
+    assets: float, # the amount of asset
+    liabilities: pd.Series,
+    r: float,
+    ):
+    """
+    Computes the funding ratio of a series of liabilities based on an interest rate and current value of assets.
+    """
+    return assets / pv(liabilities, r)
